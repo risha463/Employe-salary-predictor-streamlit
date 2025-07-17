@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
@@ -14,7 +13,7 @@ from imblearn.over_sampling import SMOTE
 # Page config
 st.set_page_config(page_title="Salary Range Predictor", layout="centered")
 
-# Title and Instructions
+# Title
 st.title("💼 Salary Range Prediction App")
 st.markdown("""
 Upload your **`employe.csv`** file to begin. This app will:
@@ -28,31 +27,33 @@ Upload your **`employe.csv`** file to begin. This app will:
 uploaded_file = st.file_uploader("📤 Upload CSV file", type=["csv"])
 
 if uploaded_file:
+    # Load data
     data = pd.read_csv(uploaded_file)
     st.success("✅ File uploaded successfully!")
     st.write("### 🔍 Raw Data Preview")
     st.dataframe(data.head(10))
 
-    # Drop missing
+    # Drop missing values
     data.dropna(inplace=True)
 
-    # Clean column names
+    # Standardize column names
     data.columns = data.columns.str.strip().str.lower()
 
-    # Show boxplot for age
+    # Boxplot for age
     st.write("### 📦 Age Distribution (Outlier Detection)")
     fig, ax = plt.subplots()
     sns.boxplot(x=data['age'], color='skyblue')
     st.pyplot(fig)
 
-    # Remove age outliers
+    # Remove outliers
     data = data[(data['age'] >= 17) & (data['age'] <= 75)]
 
-    # Encode categorical
-    for col in ['gender', 'education level', 'job title']:
+    # Label encoding
+    label_cols = ['gender', 'education level', 'job title']
+    for col in label_cols:
         data[col] = LabelEncoder().fit_transform(data[col])
 
-    # Convert Salary to Category
+    # Convert salary to categories
     def convert_salary(salary):
         if salary < 50000:
             return 'Low'
@@ -62,22 +63,24 @@ if uploaded_file:
 
     data['salary_range'] = data['salary'].apply(convert_salary)
 
-    # Split feature and target
+    # Features and target
     X = data.drop(columns=['salary', 'salary_range'])
     Y = data['salary_range']
 
-    # Normalize
-    scaler = MinMaxScaler()
-    X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+    # Normalize features
+    X = pd.DataFrame(MinMaxScaler().fit_transform(X), columns=X.columns)
 
-    # Remove minority classes (<2)
+    # Remove rare classes
     df = pd.concat([X, Y], axis=1)
     df = df[df['salary_range'].map(df['salary_range'].value_counts()) >= 2]
-    X, Y = df.drop(columns='salary_range'), df['salary_range']
+    X = df.drop(columns='salary_range')
+    Y = df['salary_range']
 
     # Impute and fix formats
     X_imputed = SimpleImputer(strategy='most_frequent').fit_transform(X)
     X = pd.DataFrame(X_imputed, columns=X.columns)
+
+    # ✅ FIX: ensure Y is string Series
     Y = pd.Series(Y).astype(str)
 
     # Apply SMOTE
@@ -89,20 +92,20 @@ if uploaded_file:
         X_res, Y_res, test_size=0.2, stratify=Y_res, random_state=42
     )
 
-    # Model
+    # Train model
     model = RandomForestClassifier(random_state=42)
     model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
 
-    # Accuracy and report
+    # Show results
     st.write("### ✅ Model Performance")
-    st.metric("Accuracy", f"{accuracy_score(y_test, y_pred) * 100:.2f}%")
+    st.metric("Accuracy", f"{accuracy_score(y_test, y_pred)*100:.2f}%")
     st.text("📊 Classification Report:")
     st.text(classification_report(y_test, y_pred))
 
-    # Chart
     st.write("### 📈 Prediction Distribution")
     st.bar_chart(pd.Series(y_pred).value_counts())
 
 else:
     st.info("⏳ Awaiting CSV file upload...")
+
