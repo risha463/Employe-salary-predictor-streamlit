@@ -20,7 +20,7 @@ Upload your **`employe.csv`** file to begin. This app will:
 - Clean and preprocess your data
 - Handle imbalance using SMOTE
 - Train a Random Forest Classifier
-- Display accuracy and detailed classification report
+- Display accuracy and classification report
 """)
 
 # File uploader
@@ -70,16 +70,18 @@ if uploaded_file:
     # Normalize features
     X = pd.DataFrame(MinMaxScaler().fit_transform(X), columns=X.columns)
 
-    # Remove classes with very low counts
+    # Remove classes with low counts
     df = pd.concat([X, Y], axis=1)
     df = df[df['salary_range'].map(df['salary_range'].value_counts()) >= 2]
     X, Y = df.drop(columns='salary_range'), df['salary_range']
 
-    # Impute (just in case)
+    # Impute missing values and ensure X is a DataFrame
     X = SimpleImputer(strategy='most_frequent').fit_transform(X)
+    X = pd.DataFrame(X)
 
     # Handle imbalance using SMOTE
-    X_res, Y_res = SMOTE(random_state=42).fit_resample(X, Y)
+    smote = SMOTE(random_state=42)
+    X_res, Y_res = smote.fit_resample(X, Y)
 
     # Split data
     x_train, x_test, y_train, y_test = train_test_split(
@@ -95,7 +97,6 @@ if uploaded_file:
     st.write("### ✅ Model Performance")
     st.metric("Accuracy", f"{accuracy_score(y_test, y_pred) * 100:.2f}%")
     st.text("\n📊 Classification Report:")
-
     st.text(classification_report(y_test, y_pred))
 
     # Prediction Distribution
@@ -104,6 +105,4 @@ if uploaded_file:
 
 else:
     st.info("⏳ Awaiting CSV file upload...")
-
-
 
