@@ -49,8 +49,8 @@ pip install -r requirements.txt
 ## 📈 Model Evaluation
 
 * **Model Used**: Random Forest Regressor
-* **R² Score**: 87.52%
-* **MAE**: ₹3,200 (approx)
+✅ MAE: 9198.41
+📈 R² Score (Accuracy): 93.04 %
 
 The app includes evaluation charts that visualize model accuracy and feature importance.
 
